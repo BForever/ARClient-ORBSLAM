@@ -1,0 +1,2 @@
+earth|default.jpg|0.13
+book|mine.jpeg|0.13
