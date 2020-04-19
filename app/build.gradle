@@ -104,7 +104,6 @@ dependencies {
     implementation('io.grpc:grpc-protobuf-lite:1.28.1') {
         exclude module: "protobuf-lite"
     }
-    implementation project(path: ':streaming')
     implementation project(path: ':rtspserver')
     implementation project(path: ':rtplibrary')
 
