@@ -1,5 +1,6 @@
-include ':app'
+include ':app', ':rtplibrary', ':encoder', ':rtmp', ':rtsp', ':rtspserver'
 
 // Uncomment to include the source version of the ux package in your project.
 //include ':sceneformux'
 //project(':sceneformux').projectDir=new File('../../sceneformux/ux')
+include ':streaming'
