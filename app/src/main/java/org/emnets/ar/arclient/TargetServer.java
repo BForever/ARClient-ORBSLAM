@@ -12,7 +12,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class PoseServer extends AsyncTask<PoseInfo, Void, PoseInfo[]> {
+public class TargetServer extends AsyncTask<TargetInfo, Void, TargetInfo[]> {
     private final String TAG = "PoseServer";
     private boolean upload = false;
     private long startTime;
@@ -20,10 +20,10 @@ public class PoseServer extends AsyncTask<PoseInfo, Void, PoseInfo[]> {
     private ARActivity activity;
 
 
-    public PoseServer(ARActivity activity, boolean upload) {
+    public TargetServer(ARActivity activity, boolean upload) {
         this.activity = activity;
         this.upload = upload;
-        SERVER_ADDRESS = activity.SERVER_ADDRESS + ":5000/pose";
+        SERVER_ADDRESS = activity.UI_SERVER_ADDRESS + ":5001/pose";
     }
 
     @Override
@@ -34,7 +34,7 @@ public class PoseServer extends AsyncTask<PoseInfo, Void, PoseInfo[]> {
     }
 
     @Override
-    protected PoseInfo[] doInBackground(PoseInfo... infos) {
+    protected TargetInfo[] doInBackground(TargetInfo... infos) {
         if (upload) {
             return post(infos[0], SERVER_ADDRESS);
         } else {
@@ -44,17 +44,17 @@ public class PoseServer extends AsyncTask<PoseInfo, Void, PoseInfo[]> {
     }
 
     @Override
-    protected void onPostExecute(PoseInfo[] poseInfos) {
-        super.onPostExecute(poseInfos);
+    protected void onPostExecute(TargetInfo[] targetInfos) {
+        super.onPostExecute(targetInfos);
         if (!upload) {
-            activity.poseInfos = poseInfos;
+            activity.targetInfos = targetInfos;
             activity.hasPlacedLabels = false;
             activity.prePlaceLabels();
         }
         Log.i(TAG, "uploading done, elapsed: " + String.valueOf(SystemClock.uptimeMillis() - startTime) + "ms");
     }
 
-    private PoseInfo[] get(PoseInfo infos, String serverAddr) {
+    private TargetInfo[] get(TargetInfo infos, String serverAddr) {
         try {
             URL url = new URL(serverAddr);
             HttpURLConnection c = (HttpURLConnection) url.openConnection();
@@ -63,32 +63,32 @@ public class PoseServer extends AsyncTask<PoseInfo, Void, PoseInfo[]> {
             c.connect();
 
             Log.i(TAG, "connected, elapsed: " + String.valueOf(SystemClock.uptimeMillis() - startTime) + "ms");
-            PoseInfo[] poseInfos;
+            TargetInfo[] targetInfos;
             Gson res = new Gson();
             if (c.getResponseCode() < 400) {
                 InputStreamReader inputStreamReader = new InputStreamReader(c.getInputStream());
 
-                poseInfos = res.fromJson(inputStreamReader, PoseInfo[].class);
+                targetInfos = res.fromJson(inputStreamReader, TargetInfo[].class);
                 Log.i(TAG, "response fetched, elapsed: " + String.valueOf(SystemClock.uptimeMillis() - startTime) + "ms");
-                Log.i(TAG, "Successfully get pose: " + poseInfos.length + " items");
+                Log.i(TAG, "Successfully get pose: " + targetInfos.length + " items");
             } else {
                 InputStreamReader inputStreamReader = new InputStreamReader(c.getInputStream());
-                PoseInfo poseInfo;
-                poseInfo = res.fromJson(inputStreamReader, PoseInfo.class);
+                TargetInfo targetInfo;
+                targetInfo = res.fromJson(inputStreamReader, TargetInfo.class);
 
-                poseInfos = new PoseInfo[1];
-                poseInfos[0] = poseInfo;
+                targetInfos = new TargetInfo[1];
+                targetInfos[0] = targetInfo;
 
-                Log.e(TAG, "Error posting pose: " + poseInfo.response);
+                Log.e(TAG, "Error posting pose: " + targetInfo.response);
             }
-            return poseInfos;
+            return targetInfos;
         } catch (IOException e) {
             Log.e(TAG, "Error in POST", e);
             return null;
         }
     }
 
-    private PoseInfo[] post(PoseInfo info, String serverAddr) {
+    private TargetInfo[] post(TargetInfo info, String serverAddr) {
         try {
             URL url = new URL(serverAddr);
             HttpURLConnection c = (HttpURLConnection) url.openConnection();
@@ -101,24 +101,24 @@ public class PoseServer extends AsyncTask<PoseInfo, Void, PoseInfo[]> {
             OutputStream output = c.getOutputStream();
 
             Gson gson = new Gson();
-            output.write(gson.toJson(info, PoseInfo.class).getBytes());
+            output.write(gson.toJson(info, TargetInfo.class).getBytes());
             output.close();
 
             Log.i(TAG, "json transferred, elapsed: " + String.valueOf(SystemClock.uptimeMillis() - startTime) + "ms");
 
-            PoseInfo[] poseInfos = new PoseInfo[1];
+            TargetInfo[] targetInfos = new TargetInfo[1];
             if (c.getResponseCode() < 400) {
                 InputStreamReader inputStreamReader = new InputStreamReader(c.getInputStream());
-                poseInfos[0] = gson.fromJson(inputStreamReader, PoseInfo.class);
+                targetInfos[0] = gson.fromJson(inputStreamReader, TargetInfo.class);
                 Log.i(TAG, "response fetched, elapsed: " + String.valueOf(SystemClock.uptimeMillis() - startTime) + "ms");
-                Log.i(TAG, "Successfully posted pose: " + poseInfos[0].response);
+                Log.i(TAG, "Successfully posted pose: " + targetInfos[0].response);
             } else {
                 InputStreamReader inputStreamReader = new InputStreamReader(c.getInputStream());
-                poseInfos[0] = gson.fromJson(inputStreamReader, PoseInfo.class);
+                targetInfos[0] = gson.fromJson(inputStreamReader, TargetInfo.class);
 
-                Log.e(TAG, "Error posting pose: " + poseInfos[0].response);
+                Log.e(TAG, "Error posting pose: " + targetInfos[0].response);
             }
-            return poseInfos;
+            return targetInfos;
         } catch (IOException e) {
             Log.e(TAG, "Error in POST", e);
             return null;

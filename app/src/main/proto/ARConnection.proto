@@ -2,9 +2,9 @@ syntax = "proto3";
 
 option java_package = "org.emnets.ar.arclient";
 option java_multiple_files = true;
-option java_outer_classname = "viewMatrixProto";
+option java_outer_classname = "ARConnectionProto";
 
-package viewmatrix;
+package ARConnection;
 
 message Matrix {
     double r0c0 = 1;
@@ -30,7 +30,16 @@ message Request {
     string name = 1;
 }
 
-service ViewTrans {
-    rpc GetViewMatrix (Request) returns (Matrix) {
-    }
+message ImageBlock {
+    int64 size = 1;
+    bytes image = 2;
+}
+
+message Response {
+    string status = 1;
+}
+
+service ARConnectionService {
+    rpc GetViewMatrix (Request) returns (Matrix);
+    rpc UploadImage(stream ImageBlock) returns (Response);
 }

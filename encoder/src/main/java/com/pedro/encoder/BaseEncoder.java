@@ -4,6 +4,8 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.os.Build;
+import android.os.SystemClock;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -75,6 +77,7 @@ public abstract class BaseEncoder implements EncoderCallback {
             byteBuffer.clear();
             byteBuffer.put(frame.getBuffer(), frame.getOffset(), frame.getSize());
             long pts = System.nanoTime() / 1000 - presentTimeUs;
+//            Log.e("InputBuffer","pts: "+String.valueOf(pts)+" size: "+frame.getSize());
             mediaCodec.queueInputBuffer(inBufferIndex, 0, frame.getSize(), pts, 0);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -91,6 +94,7 @@ public abstract class BaseEncoder implements EncoderCallback {
                                int outBufferIndex, @NonNull MediaCodec.BufferInfo bufferInfo) throws IllegalStateException {
         checkBuffer(byteBuffer, bufferInfo);
         sendBuffer(byteBuffer, bufferInfo);
+//        Log.e("OutputBuffer","pts: "+String.valueOf(bufferInfo.presentationTimeUs)+" size: "+bufferInfo.size);
         mediaCodec.releaseOutputBuffer(outBufferIndex, false);
     }
 
@@ -107,6 +111,7 @@ public abstract class BaseEncoder implements EncoderCallback {
             throws IllegalStateException {
         ByteBuffer byteBuffer;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Log.e(TAG,String.valueOf(frame.video));
             byteBuffer = mediaCodec.getInputBuffer(inBufferIndex);
         } else {
             byteBuffer = mediaCodec.getInputBuffers()[inBufferIndex];
@@ -117,6 +122,7 @@ public abstract class BaseEncoder implements EncoderCallback {
     @Override
     public void outputAvailable(@NonNull MediaCodec mediaCodec, int outBufferIndex,
                                 @NonNull MediaCodec.BufferInfo bufferInfo) throws IllegalStateException {
+        Log.e("OutputBuffer",String.valueOf(bufferInfo.presentationTimeUs));
         ByteBuffer byteBuffer;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             byteBuffer = mediaCodec.getOutputBuffer(outBufferIndex);

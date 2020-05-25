@@ -35,6 +35,18 @@ public class ImageHelper {
         return bitmap;
     }
 
+    public static byte[] JpegImagetoJpegBytes(Image image, int quality) {
+        ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
+        byte[] bytes = new byte[byteBuffer.remaining()];
+        byteBuffer.get(bytes);
+        return bytes;
+    }
+
+    public static byte[] ImagetoJpegBytes(Image image, int quality) {
+        byte[] bytes = NV21toJPEG(YUV_420_888toNV21(image), image.getWidth(), image.getHeight(), quality);
+        return bytes;
+    }
+
 
 //    public static void WriteImageInformation(Image image, String path) {
 //        byte[] data = null;
@@ -46,7 +58,7 @@ public class ImageHelper {
 //        bos.close();
 //    }
 
-    private static byte[] YUV_420_888toNV21(Image image) {
+    public static byte[] YUV_420_888toNV21(Image image) {
         byte[] nv21;
         ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
         ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();

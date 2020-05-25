@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.SystemClock;
 import android.util.Log;
 import android.util.Pair;
 import android.view.Surface;
@@ -61,6 +62,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
 
     public VideoEncoder(GetVideoData getVideoData) {
         this.getVideoData = getVideoData;
+        Log.e(TAG,"VideoEncoder");
     }
 
     public boolean prepareVideoEncoder(int width, int height, int fps, int bitRate, int rotation,
@@ -118,6 +120,9 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
             videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
             videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, fps);
             videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, iFrameInterval);
+            videoFormat.setInteger(MediaFormat.KEY_LATENCY,0);
+            videoFormat.setInteger(MediaFormat.KEY_MAX_B_FRAMES,0);
+//            videoFormat.setInteger(MediaFormat.KEY_INTRA_REFRESH_PERIOD,1);
             if (hardwareRotation) {
                 videoFormat.setInteger("rotation-degrees", rotation);
             }
@@ -132,6 +137,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
             running = false;
             if (formatVideoEncoder == FormatVideoEncoder.SURFACE
                     && Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                Log.e(TAG,"createInputSurface");
                 isBufferMode = false;
                 inputSurface = codec.createInputSurface();
             }
@@ -157,10 +163,12 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
         handlerThread.start();
         Handler handler = new Handler(handlerThread.getLooper());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Log.e(TAG,"createAsyncCallback");
             createAsyncCallback();
             codec.setCallback(callback, handler);
             codec.start();
         } else {
+            Log.e(TAG,"use getDataFromEncoder");
             codec.start();
             handler.post(new Runnable() {
                 @Override
@@ -248,6 +256,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
     }
 
     public Surface getInputSurface() {
+//        return null;
         return inputSurface;
     }
 
@@ -425,6 +434,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
 
     @Override
     protected Frame getInputFrame() throws InterruptedException {
+        Log.e(TAG,"getInputFrame");
         Frame frame = queue.take();
         if (fpsLimiter.limitFPS()) return getInputFrame();
         byte[] buffer = frame.getBuffer();
@@ -478,6 +488,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
             @Override
             public void onInputBufferAvailable(@NonNull MediaCodec mediaCodec, int inBufferIndex) {
                 try {
+                    Log.e(TAG,"VideoEncoder");
                     inputAvailable(mediaCodec, inBufferIndex, null);
                 } catch (IllegalStateException e) {
                     Log.i(TAG, "Encoding error", e);
@@ -488,6 +499,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
             public void onOutputBufferAvailable(@NonNull MediaCodec mediaCodec, int outBufferIndex,
                                                 @NonNull MediaCodec.BufferInfo bufferInfo) {
                 try {
+                    Log.e("TAG","Video out FrameAvailable:"+String.valueOf(SystemClock.uptimeMillis()));
                     outputAvailable(mediaCodec, outBufferIndex, bufferInfo);
                 } catch (IllegalStateException e) {
                     Log.i(TAG, "Encoding error", e);

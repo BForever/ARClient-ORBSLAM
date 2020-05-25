@@ -3,16 +3,16 @@ package org.emnets.ar.arclient;
 import com.google.ar.core.Pose;
 import com.google.ar.sceneform.math.Vector3;
 
-public class PoseInfo {
+public class TargetInfo {
     public String name;
     public float[] pose;
     public String response;
 
-    public PoseInfo() {
+    public TargetInfo() {
         pose = new float[7];
     }
 
-    public PoseInfo(Pose pose, String name) {
+    public TargetInfo(Pose pose, String name) {
         this.name = name;
         this.pose = new float[7];
         this.pose[0] = pose.tx();
@@ -24,7 +24,7 @@ public class PoseInfo {
         this.pose[6] = pose.qw();
     }
 
-    public PoseInfo(Vector3 pose, String name) {
+    public TargetInfo(Vector3 pose, String name) {
         this.name = name;
         this.pose = new float[7];
         this.pose[0] = pose.x;

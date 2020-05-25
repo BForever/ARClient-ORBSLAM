@@ -1,6 +1,7 @@
 package org.emnets.ar.arclient;
 
 import android.content.Context;
+import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -14,6 +15,7 @@ import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ViewRenderable;
 
 public class WebNode extends Node {
+    private CameraPose cameraPose=null;
 
     // create new node upon parent
     WebNode(NodeParent parent, Context context, String url) {
@@ -53,9 +55,10 @@ public class WebNode extends Node {
     }
 
     // create new node in world position
-    WebNode(NodeParent parent, Context context, Pose pose, String url) {
+    WebNode(NodeParent parent, Context context, Pose pose, String url,CameraPose cameraPose) {
         this.setParent(parent);
         this.setEnabled(true);
+        this.cameraPose = cameraPose;
 
 
         Vector3 pos = new Vector3(pose.tx(), pose.ty(), pose.tz());
@@ -64,6 +67,7 @@ public class WebNode extends Node {
         Quaternion rot = new Quaternion(pose.qx(), pose.qy(), pose.qz(), pose.qw());
         this.setLocalPosition(pos);
         this.setLocalRotation(rot);
+        this.setLocalScale(Vector3.one().scaled(2));
 
 //        this.setLocalRotation(Quaternion.axisAngle(Vector3.left(),90f));
 
@@ -98,14 +102,18 @@ public class WebNode extends Node {
                         });
 
     }
+    void setCameraPose(CameraPose cameraPose){
+        this.cameraPose = cameraPose;
+    }
 
     @Override
     public void onUpdate(FrameTime frameTime) {
         super.onUpdate(frameTime);
-        Vector3 cameraPosition = getScene().getCamera().getWorldPosition();
+        Vector3 cameraPosition = cameraPose.getTranslation();
         Vector3 cardPosition = this.getWorldPosition();
         Vector3 direction = Vector3.subtract(cameraPosition, cardPosition);
-        Quaternion lookRotation = Quaternion.lookRotation(direction, Vector3.up());
+        direction.y = 0;
+        Quaternion lookRotation = Quaternion.lookRotation(direction, cameraPose.getUpVector());
         this.setWorldRotation(lookRotation);
     }
 }

@@ -766,6 +766,7 @@ public abstract class Camera1Base
 
     @Override
     public void inputYUVData(Frame frame) {
+        Log.e("Camera1",String.valueOf(frame.video));
         videoEncoder.inputYUVData(frame);
     }
 

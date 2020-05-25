@@ -14,6 +14,7 @@ public class Frame {
     private int orientation;
     private boolean flip;
     private int format = ImageFormat.NV21; //nv21 or yv12 supported
+    public boolean video=false;
 
     /**
      * Used with video frame
@@ -25,6 +26,7 @@ public class Frame {
         this.format = format;
         offset = 0;
         size = buffer.length;
+        video=true;
     }
 
     /**

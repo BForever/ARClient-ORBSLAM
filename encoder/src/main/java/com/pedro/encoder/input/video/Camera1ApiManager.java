@@ -263,6 +263,7 @@ public class Camera1ApiManager implements Camera.PreviewCallback, Camera.FaceDet
 
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
+        Log.e("Camera1","onPreviewFrame");
         getCameraData.inputYUVData(new Frame(data, rotation, isFrontCamera && isPortrait, imageFormat));
         camera.addCallbackBuffer(yuvBuffer);
     }

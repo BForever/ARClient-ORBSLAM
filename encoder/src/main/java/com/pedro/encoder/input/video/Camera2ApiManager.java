@@ -172,8 +172,10 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     private CaptureRequest drawSurface(List<Surface> surfaces) {
         try {
             builderInputSurface = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            for (Surface surface : surfaces)
+            for (Surface surface : surfaces){
                 if (surface != null) builderInputSurface.addTarget(surface);
+            }
+            builderInputSurface.set(CaptureRequest.CONTROL_AF_MODE,CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
             return builderInputSurface.build();
         } catch (CameraAccessException | IllegalStateException e) {
             Log.e(TAG, "Error", e);

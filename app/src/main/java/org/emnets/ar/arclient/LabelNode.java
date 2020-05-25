@@ -14,25 +14,20 @@ import com.google.ar.sceneform.rendering.ViewRenderable;
 public class LabelNode extends Node {
     private static float INFO_CARD_Y_POS_COEFF = 0f;
 
-
     LabelNode(NodeParent parent, Context context, String text) {
         this.setParent(parent);
         this.setEnabled(true);
         this.setLocalPosition(new Vector3(0.0f, INFO_CARD_Y_POS_COEFF, -1f));
 
-        ViewRenderable.builder()
-                .setView(context, R.layout.planet_card_view)
-                .build()
-                .thenAccept(
-                        (renderable) -> {
-                            this.setRenderable(renderable);
-                            TextView textView = (TextView) renderable.getView();
-                            textView.setText(text);
-                        })
-                .exceptionally(
-                        (throwable) -> {
-                            throw new AssertionError("Could not load plane card view.", throwable);
-                        });
+        setupView(context,text);
+    }
+
+    LabelNode(NodeParent parent, Context context, String text, Vector3 position) {
+        this.setParent(parent);
+        this.setEnabled(true);
+        this.setLocalPosition(position);
+
+        setupView(context,text);
     }
 
     LabelNode(NodeParent parent, Context context, Pose pose, String text) {
@@ -40,6 +35,10 @@ public class LabelNode extends Node {
         this.setEnabled(true);
         this.setLocalPosition(new Vector3(pose.tx(), pose.ty(), -pose.tz()));
 
+        setupView(context,text);
+    }
+
+    private void setupView(Context context,String text){
         ViewRenderable.builder()
                 .setView(context, R.layout.planet_card_view)
                 .build()
@@ -54,8 +53,6 @@ public class LabelNode extends Node {
                             throw new AssertionError("Could not load plane card view.", throwable);
                         });
     }
-
-
     @Override
     public void onUpdate(FrameTime frameTime) {
         super.onUpdate(frameTime);

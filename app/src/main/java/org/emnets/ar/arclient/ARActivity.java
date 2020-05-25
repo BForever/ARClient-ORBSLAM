@@ -18,9 +18,11 @@ package org.emnets.ar.arclient;
 
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
@@ -38,13 +40,15 @@ import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ExternalTexture;
 import com.google.ar.sceneform.rendering.ModelRenderable;
-import com.pedro.rtsp.utils.ConnectCheckerRtsp;
-import com.pedro.rtspserver.RtspServerCamera2;
+import com.pedro.encoder.input.video.Camera2ApiManager;
 
-import org.emnets.ar.arclient.helpers.RtspConnectionChecker;
+import org.emnets.ar.arclient.helpers.GeoHelper;
+import org.emnets.ar.arclient.helpers.GetDistanceOf2linesIn3D;
+import org.emnets.ar.arclient.helpers.GrpcSurfaceUploader;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.stub.StreamObserver;
 
 
 /**
@@ -67,22 +71,30 @@ public class ARActivity extends AppCompatActivity {
     private LinearLayout inputLayout;
     private Button inputButton;
     private EditText editText;
-    private static final float VIDEO_HEIGHT_METERS = 40f;
+    private static final float VIDEO_HEIGHT_METERS = 25f;
     // Shader
     private Scene scene;
     Camera camera;
+    CameraPose cameraPose;
+    GetDistanceOf2linesIn3D getDistanceOf2linesIn3D=new GetDistanceOf2linesIn3D();
+    Node previewPoint;
+
     ModelRenderable mVideoRenderable;
     Node mVideoNode;
     // Labels
     public boolean hasPlacedLabels;
-    public PoseInfo[] poseInfos;
+    public TargetInfo[] targetInfos;
     // Internet
-    static final public String SERVER_ADDRESS = "http://47.103.3.12";
+    static final public String UI_SERVER_ADDRESS = "http://47.103.3.12";
     static final public String UI_SERVER_PORT = "8000";
+    static final public String SLAM_SERVER_ADDRESS = "10.214.149.2";
+    static final public int SLAM_SERVER_PORT = 50051;
+//    RtspServerCamera2 rtspCamera;
 
     // RPC
     ManagedChannel channel;
-    ViewTransGrpc.ViewTransBlockingStub stub;
+    ARConnectionServiceGrpc.ARConnectionServiceStub stub;
+    GrpcSurfaceUploader grpcSurfaceUploader;
     Request request;
     boolean stopReceive = false;
     // Debug
@@ -107,25 +119,10 @@ public class ARActivity extends AppCompatActivity {
 
         // Shader init
         scene = sceneView.getScene();
+        sceneView.setOnTouchListener(sceneOnTouchListener);
         camera = scene.getCamera();
-        camera.setWorldPosition(new Vector3(-3.3f, 0.3f, 0.5f));
-        camera.setLocalRotation(Quaternion.axisAngle(Vector3.up(), -15.0f));
-
-        // Targets Server
-        hasPlacedLabels = true;
-        PoseServer poseServer = new PoseServer(this, false);
-        PoseInfo[] poseInfos = new PoseInfo[1];
-        poseInfos[0] = new PoseInfo();
-        poseServer.execute(poseInfos);
-        // Pose Server
-        if (fetchPose) {
-            channel = ManagedChannelBuilder.forAddress("192.168.1.100", 50051).usePlaintext().build();
-            stub = ViewTransGrpc.newBlockingStub(channel);
-            request = Request.newBuilder().setName("hello").build();
-            Thread thread = new Thread(receiveMatrix);
-            thread.start();
-        }
-
+        cameraPose = new CameraPose(camera);
+        camera.setVerticalFovDegrees(50);
     }
 
     @Override
@@ -140,13 +137,32 @@ public class ARActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        grpcSurfaceUploader.stop();
+//        rtspCamera.stopStream();
         super.onDestroy();
     }
 
     private void startButtonOnClick(View view) {
+        // Targets Server
+        hasPlacedLabels = true;
+        TargetServer targetServer = new TargetServer(this, false);
+        TargetInfo[] targetInfos = new TargetInfo[1];
+        targetInfos[0] = new TargetInfo();
+        targetServer.execute(targetInfos);
+        // SLAM Server
+        if (fetchPose) {
+            channel = ManagedChannelBuilder.forAddress(SLAM_SERVER_ADDRESS, SLAM_SERVER_PORT).usePlaintext().enableRetry().maxRetryAttempts(100).build();
+//            stub = ARConnectionServiceGrpc.newBlockingStub(channel);
+            stub = ARConnectionServiceGrpc.newStub(channel);
+            request = Request.newBuilder().setName("hello").build();
+            Thread thread = new Thread(receiveMatrix);
+            thread.start();
+            grpcSurfaceUploader = new GrpcSurfaceUploader(stub);
+        }
+
         mVideoNode = new Node();
         mVideoNode.setParent(camera);
-        mVideoNode.setLocalPosition(new Vector3(0f, -20f, -20f));
+        mVideoNode.setLocalPosition(new Vector3(0f, -12f, -20f));
 
         // Set the scale of the node so that the aspect ratio of the video is correct.
         float videoWidth = 640f;
@@ -156,10 +172,13 @@ public class ARActivity extends AppCompatActivity {
                         VIDEO_HEIGHT_METERS * (videoWidth / videoHeight), VIDEO_HEIGHT_METERS, 1.0f));
 
         ExternalTexture texture = createExternalTexture(mVideoNode);
+        Surface preview = texture.getSurface();
 
-
-        Surface surface = texture.getSurface();
-        createCameraRtspServer(surface);
+//        createCameraRtspServer(grpcSurfaceUploader.getSurface());
+        Camera2ApiManager camera2ApiManager = new Camera2ApiManager(this);
+        camera2ApiManager.prepareCamera(preview,grpcSurfaceUploader.getSurface());
+        camera2ApiManager.openCamera();
+        grpcSurfaceUploader.start();
 
         startLayout.setVisibility(View.INVISIBLE);
         startLayout.requestLayout();
@@ -169,61 +188,88 @@ public class ARActivity extends AppCompatActivity {
         String text = editText.getText().toString();
         Log.e("text", text);
 
+        getDistanceOf2linesIn3D.setRay(GeoHelper.cameraToRay(cameraPose));
+
+        if(getDistanceOf2linesIn3D.twoLineSet()){
+            getDistanceOf2linesIn3D.compute();
+            Vector3 point = getDistanceOf2linesIn3D.getPonA();
+            Log.e(TAG,"point create at "+point.toString());
+            previewPoint = new LabelNode(scene,this,"target",point.negated());
+            inputLayout.setVisibility(View.INVISIBLE);
+            inputLayout.requestLayout();
+        }else {
+            if(previewPoint!=null){
+                scene.removeChild(previewPoint);
+            }
+        }
+
 //        Node card = new WebNode(anchorNode, this, getOffsetPose(),SERVER_ADDRESS+":"+UI_SERVER_PORT+"/"+text+".html");
 //        PoseInfo info = new PoseInfo(getOffsetPose(),text);
 //
 //        PoseServer poseServer = new PoseServer(this,true);
 //        poseServer.execute(info);
-
-        inputLayout.setVisibility(View.INVISIBLE);
-        inputLayout.requestLayout();
     }
 
     public void prePlaceLabels() {
-        if (this.poseInfos == null) {
+        if (this.targetInfos == null) {
             return;
         }
-        for (PoseInfo info : this.poseInfos) {
-            Log.d(TAG, "placing item: " + info.name + info.pose[0] + info.pose[1] + info.pose[2]);
+        for (TargetInfo info : this.targetInfos) {
+            Log.d(TAG, "placing item: " + info.name +" "+ info.pose[0] +" "+ info.pose[1] +" "+ info.pose[2]);
 //            new WebNode(anchorNode,this, new Vector3(info.pose[0],info.pose[1],info.pose[2]),SERVER_ADDRESS+":8000/"+info.name+".html");
-            new WebNode(scene, this, info.getPose(), SERVER_ADDRESS + ":" + UI_SERVER_PORT + "/" + info.name + ".html");
+            new WebNode(scene, this, info.getPose(), UI_SERVER_ADDRESS + ":" + UI_SERVER_PORT + "/" + info.name + ".html",cameraPose);
         }
 //        Node card = new LabelNode(anchorNode, this, Pose.makeTranslation(3.6f, 0.2f, 0.2f), "刘汶鑫");
-//        Node web = new WebNode(scene, this, new Vector3(0, 0f, -3f), "范宏昌");
+//        Node web = new WebNode(scene, this, new Vector3(0, 0f, 0f), "范宏昌");
 //        Node label = new LabelNode(scene,this,"fan");
     }
+
+    View.OnTouchListener sceneOnTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            Log.e(TAG,"onTouch");
+            inputLayout.setVisibility(View.VISIBLE);
+            inputLayout.requestLayout();
+            return false;
+        }
+    };
 
     // View Matrix Transfer
     Runnable receiveMatrix = new Runnable() {
         @Override
         public void run() {
             while (!stopReceive) {
-                Matrix result = stub.getViewMatrix(request);
-                if (result.getUpdate()) {
-//                    float[] temp = {(float) result.getR0C0(), (float) result.getR1C0(), (float) result.getR2C0(), (float) result.getR3C0(),
-//                            (float) result.getR0C1(), (float) result.getR1C1(), (float) result.getR2C1(), (float) result.getR3C1(),
-//                            (float) result.getR0C2(), (float) result.getR1C2(), (float) result.getR2C2(), (float) result.getR3C2(),
-//                            (float) result.getR0C3(), (float) result.getR1C3(), (float) result.getR2C3(), (float) result.getR3C3()};
-                    float[] temp = {(float) result.getR0C0(), (float) result.getR0C1(), (float) result.getR0C2(), (float) result.getR0C3(),
-                            (float) result.getR1C0(), (float) result.getR1C1(), (float) result.getR1C2(), (float) result.getR1C3(),
-                            (float) result.getR2C0(), (float) result.getR2C1(), (float) result.getR2C2(), (float) result.getR2C3(),
-                            (float) result.getR3C0(), (float) result.getR3C1(), (float) result.getR3C2(), (float) result.getR3C3()};
-                    com.google.ar.sceneform.math.Matrix viewmatrix = new com.google.ar.sceneform.math.Matrix(temp);
-                    com.google.ar.sceneform.math.Matrix worldmodematrix = new com.google.ar.sceneform.math.Matrix();
-//                    com.google.ar.sceneform.math.Matrix worldmodematrix = viewmatrix;
-                    com.google.ar.sceneform.math.Matrix.invert(viewmatrix, worldmodematrix);
-                    Vector3 translation = new Vector3();
+                long time = SystemClock.uptimeMillis();
+                StreamObserver<Matrix> streamObserver = new StreamObserver<Matrix>() {
+                    @Override
+                    public void onNext(Matrix result) {
+                        if (result.getUpdate()) {
+                            cameraPose.setViewMatrix(result);
+                            camera.setLocalPosition(cameraPose.getTranslation());
+                            camera.setLocalRotation(cameraPose.getRotation());
+                        } else {
+//                            Log.v("grpc", "pose not updated");
+                        }
+                    }
 
-                    worldmodematrix.decomposeTranslation(translation);
-                    Quaternion rotation = new Quaternion();
-                    worldmodematrix.extractQuaternion(rotation);
-                    camera.setWorldPosition(translation);
-                    camera.setWorldRotation(rotation);
-//                    camera.setLocalRotation(Quaternion.axisAngle(Vector3.forward(),-90));
-                    Log.e("grpc", "sucessfully get pose:" + temp[0] + " " + temp[1] + " " + temp[2] + " " + temp[3] + " " + temp[4]);
-                } else {
-                    Log.e("grpc", "pose not updated");
+                    @Override
+                    public void onError(Throwable t) {
+
+                    }
+
+                    @Override
+                    public void onCompleted() {
+
+                    }
+                };
+                stub.getViewMatrix(request, streamObserver);
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
+//                Log.e("time","getViewMatrix: "+String.valueOf(SystemClock.uptimeMillis()-time));
+
             }
         }
     };
@@ -244,6 +290,7 @@ public class ARActivity extends AppCompatActivity {
                                             (SurfaceTexture surfaceTexture1) -> {
                                                 videoNode.setRenderable(mVideoRenderable);
                                                 surfaceTexture1.setOnFrameAvailableListener(null);
+//                                                Log.e("OnFrameAvailable",String.valueOf(SystemClock.uptimeMillis()));
                                             });
                         })
                 .exceptionally(
@@ -257,21 +304,24 @@ public class ARActivity extends AppCompatActivity {
         return texture;
     }
 
-    void onFps(int fps) {
-        Log.e("fps", Integer.toString(fps));
-    }
+//    void onFps(int fps) {
+//        Log.e("fps", Integer.toString(fps));
+//    }
 
-    private void createCameraRtspServer(Surface surface) {
-        try {
-            ConnectCheckerRtsp connectCheckerRtsp = new RtspConnectionChecker();
-            RtspServerCamera2 rtspCamera = new RtspServerCamera2(this, surface, connectCheckerRtsp, 8086);
-            //start stream
-            rtspCamera.setFpsListener(this::onFps);
-            if (rtspCamera.prepareAudio() && rtspCamera.prepareVideo()) {
-                rtspCamera.startStream();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+//    private void createCameraRtspServer(Surface surface) {
+//        try {
+//            ConnectCheckerRtsp connectCheckerRtsp = new RtspConnectionChecker();
+//            rtspCamera = new RtspServerCamera2(this, surface, connectCheckerRtsp, 8086);
+//            //start stream
+//            rtspCamera.setVideoCodec(VideoCodec.H265);
+//            rtspCamera.setLimitFPSOnFly(30);
+//            rtspCamera.setForce(CodecUtil.Force.HARDWARE, CodecUtil.Force.FIRST_COMPATIBLE_FOUND);
+////            rtspCamera.setFpsListener(this::onFps);
+//            if (rtspCamera.prepareAudio() && rtspCamera.prepareVideo()) {
+//                rtspCamera.startStream();
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 }

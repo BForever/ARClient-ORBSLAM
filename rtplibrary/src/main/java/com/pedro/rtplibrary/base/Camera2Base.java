@@ -3,8 +3,11 @@ package com.pedro.rtplibrary.base;
 import android.content.Context;
 import android.hardware.camera2.CameraCharacteristics;
 import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.os.Build;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.util.Size;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -111,6 +114,7 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
     }
 
     private void init(Context context) {
+        Log.e("INIT","INIT");
         cameraManager = new Camera2ApiManager(context);
         videoEncoder = new VideoEncoder(this);
         microphoneManager = new MicrophoneManager(this);
@@ -202,6 +206,7 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
             stopPreview();
             onPreview = true;
         }
+        Log.e("prepare","videoEncoder");
         boolean result =
                 videoEncoder.prepareVideoEncoder(width, height, fps, bitrate, rotation, hardwareRotation,
                         iFrameInterval, FormatVideoEncoder.SURFACE, avcProfile, avcProfileLevel);
@@ -211,7 +216,9 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
 
     public boolean prepareVideo(int width, int height, int fps, int bitrate, boolean hardwareRotation,
                                 int iFrameInterval, int rotation) {
-        return prepareVideo(width, height, fps, bitrate, hardwareRotation, iFrameInterval, rotation, -1,
+//        return prepareVideo(width, height, fps, bitrate, hardwareRotation, iFrameInterval, rotation, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline,
+//                MediaCodecInfo.CodecProfileLevel.AVCLevel32);
+        return prepareVideo(width, height, fps, bitrate, hardwareRotation, iFrameInterval, rotation,-1,
                 -1);
     }
 
@@ -220,7 +227,7 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
      */
     public boolean prepareVideo(int width, int height, int fps, int bitrate, boolean hardwareRotation,
                                 int rotation) {
-        return prepareVideo(width, height, fps, bitrate, hardwareRotation, 2, rotation);
+        return prepareVideo(width, height, fps, bitrate, hardwareRotation, 1, rotation);
     }
 
     protected abstract void prepareAudioRtp(boolean isStereo, int sampleRate);
@@ -445,6 +452,7 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
     }
 
     private void startEncoders() {
+        Log.e("Camera2","startEncoders");
         videoEncoder.start();
         audioEncoder.start();
         prepareGlView();
