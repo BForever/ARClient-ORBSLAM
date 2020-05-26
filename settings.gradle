@@ -1,4 +1,4 @@
-include ':app', ':rtplibrary', ':encoder', ':rtmp', ':rtsp', ':rtspserver'
+include ':app'
 
 // Uncomment to include the source version of the ux package in your project.
 //include ':sceneformux'

@@ -1,25 +1,9 @@
-/*
- * Copyright 2018 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.emnets.ar.arclient;
 
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.support.v7.app.AppCompatActivity;
+
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -31,16 +15,16 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.sceneform.Camera;
 import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.Scene;
 import com.google.ar.sceneform.SceneView;
-import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ExternalTexture;
 import com.google.ar.sceneform.rendering.ModelRenderable;
-import com.pedro.encoder.input.video.Camera2ApiManager;
 
 import org.emnets.ar.arclient.helpers.GeoHelper;
 import org.emnets.ar.arclient.helpers.GetDistanceOf2linesIn3D;
@@ -71,7 +55,7 @@ public class ARActivity extends AppCompatActivity {
     private LinearLayout inputLayout;
     private Button inputButton;
     private EditText editText;
-    private static final float VIDEO_HEIGHT_METERS = 25f;
+    private static final float VIDEO_HEIGHT_METERS = 20f;
     // Shader
     private Scene scene;
     Camera camera;
@@ -89,7 +73,6 @@ public class ARActivity extends AppCompatActivity {
     static final public String UI_SERVER_PORT = "8000";
     static final public String SLAM_SERVER_ADDRESS = "10.214.149.2";
     static final public int SLAM_SERVER_PORT = 50051;
-//    RtspServerCamera2 rtspCamera;
 
     // RPC
     ManagedChannel channel;
@@ -122,7 +105,8 @@ public class ARActivity extends AppCompatActivity {
         sceneView.setOnTouchListener(sceneOnTouchListener);
         camera = scene.getCamera();
         cameraPose = new CameraPose(camera);
-        camera.setVerticalFovDegrees(50);
+        camera.setVerticalFovDegrees(20);
+        camera.setFarClipPlane(60);
     }
 
     @Override
@@ -138,11 +122,12 @@ public class ARActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         grpcSurfaceUploader.stop();
-//        rtspCamera.stopStream();
         super.onDestroy();
     }
 
     private void startButtonOnClick(View view) {
+
+        Log.e(TAG,"width: "+sceneView.getWidth()+" height: "+sceneView.getHeight());
         // Targets Server
         hasPlacedLabels = true;
         TargetServer targetServer = new TargetServer(this, false);
@@ -162,7 +147,7 @@ public class ARActivity extends AppCompatActivity {
 
         mVideoNode = new Node();
         mVideoNode.setParent(camera);
-        mVideoNode.setLocalPosition(new Vector3(0f, -12f, -20f));
+        mVideoNode.setLocalPosition(new Vector3(0f, -10f, -58f));
 
         // Set the scale of the node so that the aspect ratio of the video is correct.
         float videoWidth = 640f;
@@ -175,9 +160,9 @@ public class ARActivity extends AppCompatActivity {
         Surface preview = texture.getSurface();
 
 //        createCameraRtspServer(grpcSurfaceUploader.getSurface());
-        Camera2ApiManager camera2ApiManager = new Camera2ApiManager(this);
-        camera2ApiManager.prepareCamera(preview,grpcSurfaceUploader.getSurface());
-        camera2ApiManager.openCamera();
+        Camera2Manager camera2Manager = new Camera2Manager(this);
+        camera2Manager.prepareCamera(preview,grpcSurfaceUploader.getSurface());
+        camera2Manager.openCamera();
         grpcSurfaceUploader.start();
 
         startLayout.setVisibility(View.INVISIBLE);
@@ -303,25 +288,4 @@ public class ARActivity extends AppCompatActivity {
                         });
         return texture;
     }
-
-//    void onFps(int fps) {
-//        Log.e("fps", Integer.toString(fps));
-//    }
-
-//    private void createCameraRtspServer(Surface surface) {
-//        try {
-//            ConnectCheckerRtsp connectCheckerRtsp = new RtspConnectionChecker();
-//            rtspCamera = new RtspServerCamera2(this, surface, connectCheckerRtsp, 8086);
-//            //start stream
-//            rtspCamera.setVideoCodec(VideoCodec.H265);
-//            rtspCamera.setLimitFPSOnFly(30);
-//            rtspCamera.setForce(CodecUtil.Force.HARDWARE, CodecUtil.Force.FIRST_COMPATIBLE_FOUND);
-////            rtspCamera.setFpsListener(this::onFps);
-//            if (rtspCamera.prepareAudio() && rtspCamera.prepareVideo()) {
-//                rtspCamera.startStream();
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
 }

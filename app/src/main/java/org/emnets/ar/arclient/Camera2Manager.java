@@ -1,4 +1,4 @@
-package com.pedro.encoder.input.video;
+package org.emnets.ar.arclient;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -28,29 +28,19 @@ import android.view.TextureView;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static android.hardware.camera2.CameraMetadata.LENS_FACING_FRONT;
 
-/**
- * Created by pedro on 4/03/17.
- *
- * <p>
- * Class for use surfaceEncoder to buffer encoder.
- * Advantage = you can use all resolutions.
- * Disadvantages = you cant control fps of the stream, because you cant know when the inputSurface
- * was renderer.
- * <p>
- * Note: you can use opengl for surfaceEncoder to buffer encoder on devices 21 < API > 16:
- * https://github.com/google/grafika
- */
-
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-public class Camera2ApiManager extends CameraDevice.StateCallback {
-
-    private final String TAG = "Camera2ApiManager";
+public class Camera2Manager extends CameraDevice.StateCallback{
+    public enum Facing {
+        BACK, FRONT
+    }
+    private final String TAG = "Camera2Manager";
 
     private CameraDevice cameraDevice;
     private Surface surface;
@@ -74,12 +64,10 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     public interface FaceDetectorCallback {
         void onGetFaces(Face[] faces);
     }
-
-    private FaceDetectorCallback faceDetectorCallback;
     private boolean faceDetectionEnabled = false;
     private int faceDetectionMode;
 
-    public Camera2ApiManager(Context context) {
+    public Camera2Manager(Context context) {
         cameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
     }
 
@@ -126,7 +114,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
             cameraDevice.createCaptureSession(listSurfaces, new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Camera2ApiManager.this.cameraCaptureSession = cameraCaptureSession;
+                    Camera2Manager.this.cameraCaptureSession = cameraCaptureSession;
                     try {
                         CaptureRequest captureRequest = drawSurface(listSurfaces);
                         if (captureRequest != null) {
@@ -175,7 +163,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
             for (Surface surface : surfaces){
                 if (surface != null) builderInputSurface.addTarget(surface);
             }
-            builderInputSurface.set(CaptureRequest.CONTROL_AF_MODE,CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
+            builderInputSurface.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
             return builderInputSurface.build();
         } catch (CameraAccessException | IllegalStateException e) {
             Log.e(TAG, "Error", e);
@@ -198,11 +186,11 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     }
 
     public void openCameraBack() {
-        openCameraFacing(CameraHelper.Facing.BACK);
+        openCameraFacing(Facing.BACK);
     }
 
     public void openCameraFront() {
-        openCameraFacing(CameraHelper.Facing.FRONT);
+        openCameraFacing(Facing.FRONT);
     }
 
     public void openLastCamera() {
@@ -255,8 +243,8 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
      * @param cameraFacing - CameraCharacteristics.LENS_FACING_FRONT, CameraCharacteristics.LENS_FACING_BACK,
      *                     CameraCharacteristics.LENS_FACING_EXTERNAL
      */
-    public void openCameraFacing(CameraHelper.Facing cameraFacing) {
-        int facing = cameraFacing == CameraHelper.Facing.BACK ? CameraMetadata.LENS_FACING_BACK
+    public void openCameraFacing(Facing cameraFacing) {
+        int facing = cameraFacing == Facing.BACK ? CameraMetadata.LENS_FACING_BACK
                 : CameraMetadata.LENS_FACING_FRONT;
         try {
             cameraCharacteristics = cameraManager.getCameraCharacteristics("0");
@@ -320,41 +308,6 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
         }
     }
 
-    public void enableFaceDetection(FaceDetectorCallback faceDetectorCallback) {
-        int[] fd = cameraCharacteristics.get(
-                CameraCharacteristics.STATISTICS_INFO_AVAILABLE_FACE_DETECT_MODES);
-        int maxFD = cameraCharacteristics.get(CameraCharacteristics.STATISTICS_INFO_MAX_FACE_COUNT);
-        if (fd.length > 0) {
-            List<Integer> fdList = new ArrayList<>();
-            for (int FaceD : fd) {
-                fdList.add(FaceD);
-            }
-            if (maxFD > 0) {
-                this.faceDetectorCallback = faceDetectorCallback;
-                faceDetectionEnabled = true;
-                faceDetectionMode = Collections.max(fdList);
-                setFaceDetect(builderInputSurface, faceDetectionMode);
-                prepareFaceDetectionCallback();
-            } else {
-                Log.e(TAG, "No face detection");
-            }
-        } else {
-            Log.e(TAG, "No face detection");
-        }
-    }
-
-    public void disableFaceDetection() {
-        if (faceDetectionEnabled) {
-            faceDetectorCallback = null;
-            faceDetectionEnabled = false;
-            faceDetectionMode = 0;
-            prepareFaceDetectionCallback();
-        }
-    }
-
-    public boolean isFaceDetectionEnabled() {
-        return faceDetectorCallback != null;
-    }
 
     private void setFaceDetect(CaptureRequest.Builder requestBuilder, int faceDetectMode) {
         if (faceDetectionEnabled) {
@@ -379,9 +332,6 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
                     Face[] faces = result.get(CaptureResult.STATISTICS_FACES);
-                    if (faceDetectorCallback != null) {
-                        faceDetectorCallback.onGetFaces(faces);
-                    }
                 }
             };
 
@@ -470,7 +420,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
         if (event.getPointerCount() > 1) {
             // Multi touch logic
-            currentFingerSpacing = CameraHelper.getFingerSpacing(event);
+            currentFingerSpacing = getFingerSpacing(event);
             if (fingerSpacing != 0) {
                 if (currentFingerSpacing > fingerSpacing && getMaxZoom() > zoomLevel) {
                     zoomLevel += 0.1f;
@@ -482,7 +432,11 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
             fingerSpacing = currentFingerSpacing;
         }
     }
-
+    public static float getFingerSpacing(MotionEvent event) {
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+        return (float) Math.sqrt(x * x + y * y);
+    }
     public boolean isFrontCamera() {
         return isFrontCamera;
     }
