@@ -1,4 +1,4 @@
-package org.emnets.ar.arclient.helpers;
+package org.emnets.ar.arclient.network;
 
 import android.media.Image;
 import android.os.AsyncTask;
@@ -6,6 +6,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import org.emnets.ar.arclient.ARActivity;
+import org.emnets.ar.arclient.helpers.ImageHelper;
 
 import java.io.IOException;
 import java.io.OutputStream;

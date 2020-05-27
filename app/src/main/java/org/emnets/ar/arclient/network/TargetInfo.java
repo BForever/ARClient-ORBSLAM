@@ -1,4 +1,4 @@
-package org.emnets.ar.arclient;
+package org.emnets.ar.arclient.network;
 
 import com.google.ar.core.Pose;
 import com.google.ar.sceneform.math.Vector3;

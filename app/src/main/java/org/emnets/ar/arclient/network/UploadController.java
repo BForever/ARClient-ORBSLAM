@@ -1,4 +1,4 @@
-package org.emnets.ar.arclient.helpers;
+package org.emnets.ar.arclient.network;
 
 import android.app.Activity;
 import android.graphics.Color;

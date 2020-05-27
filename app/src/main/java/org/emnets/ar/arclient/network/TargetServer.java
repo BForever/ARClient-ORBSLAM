@@ -1,10 +1,12 @@
-package org.emnets.ar.arclient;
+package org.emnets.ar.arclient.network;
 
 import android.os.AsyncTask;
 import android.os.SystemClock;
 import android.util.Log;
 
 import com.google.gson.Gson;
+
+import org.emnets.ar.arclient.ARActivity;
 
 import java.io.IOException;
 import java.io.InputStreamReader;

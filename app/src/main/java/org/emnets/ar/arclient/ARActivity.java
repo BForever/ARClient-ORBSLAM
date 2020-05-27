@@ -28,7 +28,12 @@ import com.google.ar.sceneform.rendering.ModelRenderable;
 
 import org.emnets.ar.arclient.helpers.GeoHelper;
 import org.emnets.ar.arclient.helpers.GetDistanceOf2linesIn3D;
-import org.emnets.ar.arclient.helpers.GrpcSurfaceUploader;
+import org.emnets.ar.arclient.network.GrpcSurfaceUploader;
+import org.emnets.ar.arclient.network.TargetInfo;
+import org.emnets.ar.arclient.network.TargetServer;
+import org.emnets.ar.arclient.render.CameraPose;
+import org.emnets.ar.arclient.render.LabelNode;
+import org.emnets.ar.arclient.render.WebNode;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -60,7 +65,7 @@ public class ARActivity extends AppCompatActivity {
     private Scene scene;
     Camera camera;
     CameraPose cameraPose;
-    GetDistanceOf2linesIn3D getDistanceOf2linesIn3D=new GetDistanceOf2linesIn3D();
+    GetDistanceOf2linesIn3D getDistanceOf2linesIn3D = new GetDistanceOf2linesIn3D();
     Node previewPoint;
 
     ModelRenderable mVideoRenderable;
@@ -105,7 +110,7 @@ public class ARActivity extends AppCompatActivity {
         sceneView.setOnTouchListener(sceneOnTouchListener);
         camera = scene.getCamera();
         cameraPose = new CameraPose(camera);
-        camera.setVerticalFovDegrees(20);
+        camera.setVerticalFovDegrees(50);
         camera.setFarClipPlane(60);
     }
 
@@ -126,8 +131,6 @@ public class ARActivity extends AppCompatActivity {
     }
 
     private void startButtonOnClick(View view) {
-
-        Log.e(TAG,"width: "+sceneView.getWidth()+" height: "+sceneView.getHeight());
         // Targets Server
         hasPlacedLabels = true;
         TargetServer targetServer = new TargetServer(this, false);
@@ -137,7 +140,6 @@ public class ARActivity extends AppCompatActivity {
         // SLAM Server
         if (fetchPose) {
             channel = ManagedChannelBuilder.forAddress(SLAM_SERVER_ADDRESS, SLAM_SERVER_PORT).usePlaintext().enableRetry().maxRetryAttempts(100).build();
-//            stub = ARConnectionServiceGrpc.newBlockingStub(channel);
             stub = ARConnectionServiceGrpc.newStub(channel);
             request = Request.newBuilder().setName("hello").build();
             Thread thread = new Thread(receiveMatrix);
@@ -147,7 +149,7 @@ public class ARActivity extends AppCompatActivity {
 
         mVideoNode = new Node();
         mVideoNode.setParent(camera);
-        mVideoNode.setLocalPosition(new Vector3(0f, -10f, -58f));
+        mVideoNode.setLocalPosition(new Vector3(0f, -10f, -20f));
 
         // Set the scale of the node so that the aspect ratio of the video is correct.
         float videoWidth = 640f;
@@ -159,9 +161,8 @@ public class ARActivity extends AppCompatActivity {
         ExternalTexture texture = createExternalTexture(mVideoNode);
         Surface preview = texture.getSurface();
 
-//        createCameraRtspServer(grpcSurfaceUploader.getSurface());
         Camera2Manager camera2Manager = new Camera2Manager(this);
-        camera2Manager.prepareCamera(preview,grpcSurfaceUploader.getSurface());
+        camera2Manager.prepareCamera(preview, grpcSurfaceUploader.getSurface());
         camera2Manager.openCamera();
         grpcSurfaceUploader.start();
 
@@ -175,15 +176,15 @@ public class ARActivity extends AppCompatActivity {
 
         getDistanceOf2linesIn3D.setRay(GeoHelper.cameraToRay(cameraPose));
 
-        if(getDistanceOf2linesIn3D.twoLineSet()){
+        if (getDistanceOf2linesIn3D.twoLineSet()) {
             getDistanceOf2linesIn3D.compute();
             Vector3 point = getDistanceOf2linesIn3D.getPonA();
-            Log.e(TAG,"point create at "+point.toString());
-            previewPoint = new LabelNode(scene,this,"target",point.negated());
+            Log.e(TAG, "point create at " + point.toString());
+            previewPoint = new LabelNode(scene, this, "target", point);
             inputLayout.setVisibility(View.INVISIBLE);
             inputLayout.requestLayout();
-        }else {
-            if(previewPoint!=null){
+        } else {
+            if (previewPoint != null) {
                 scene.removeChild(previewPoint);
             }
         }
@@ -200,21 +201,28 @@ public class ARActivity extends AppCompatActivity {
             return;
         }
         for (TargetInfo info : this.targetInfos) {
-            Log.d(TAG, "placing item: " + info.name +" "+ info.pose[0] +" "+ info.pose[1] +" "+ info.pose[2]);
+            Log.d(TAG, "placing item: " + info.name + " " + info.pose[0] + " " + info.pose[1] + " " + info.pose[2]);
 //            new WebNode(anchorNode,this, new Vector3(info.pose[0],info.pose[1],info.pose[2]),SERVER_ADDRESS+":8000/"+info.name+".html");
-            new WebNode(scene, this, info.getPose(), UI_SERVER_ADDRESS + ":" + UI_SERVER_PORT + "/" + info.name + ".html",cameraPose);
+            new WebNode(scene, this, info.getPose(), UI_SERVER_ADDRESS + ":" + UI_SERVER_PORT + "/" + info.name + ".html", cameraPose);
         }
 //        Node card = new LabelNode(anchorNode, this, Pose.makeTranslation(3.6f, 0.2f, 0.2f), "刘汶鑫");
 //        Node web = new WebNode(scene, this, new Vector3(0, 0f, 0f), "范宏昌");
-//        Node label = new LabelNode(scene,this,"fan");
+//        new LabelNode(camera,this,"-z",new Vector3(0f,0f,-2f));
+//        new LabelNode(camera,this,"x",new Vector3(0.1f,0f,-1f));
+//        new LabelNode(camera,this,"y",new Vector3(0f,0.1f,-1f));
     }
 
     View.OnTouchListener sceneOnTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent motionEvent) {
-            Log.e(TAG,"onTouch");
-            inputLayout.setVisibility(View.VISIBLE);
-            inputLayout.requestLayout();
+//            Log.e(TAG,"onTouch");
+            if (inputLayout.getVisibility() == View.INVISIBLE) {
+                inputLayout.setVisibility(View.VISIBLE);
+                inputLayout.requestLayout();
+            }else {
+                inputLayout.setVisibility(View.INVISIBLE);
+                inputLayout.requestLayout();
+            }
             return false;
         }
     };
@@ -224,14 +232,15 @@ public class ARActivity extends AppCompatActivity {
         @Override
         public void run() {
             while (!stopReceive) {
-                long time = SystemClock.uptimeMillis();
+//                long time = SystemClock.uptimeMillis();
                 StreamObserver<Matrix> streamObserver = new StreamObserver<Matrix>() {
                     @Override
                     public void onNext(Matrix result) {
                         if (result.getUpdate()) {
                             cameraPose.setViewMatrix(result);
-                            camera.setLocalPosition(cameraPose.getTranslation());
-                            camera.setLocalRotation(cameraPose.getRotation());
+                            camera.setWorldPosition(cameraPose.getTranslation());
+                            camera.setWorldRotation(cameraPose.getRotation());
+//                            Log.e(TAG,"t: "+cameraPose.getTranslation());
                         } else {
 //                            Log.v("grpc", "pose not updated");
                         }

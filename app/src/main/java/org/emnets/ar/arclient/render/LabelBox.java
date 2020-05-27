@@ -1,4 +1,4 @@
-package org.emnets.ar.arclient;
+package org.emnets.ar.arclient.render;
 
 import android.content.Context;
 import android.widget.TextView;
@@ -8,6 +8,8 @@ import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ViewRenderable;
+
+import org.emnets.ar.arclient.R;
 
 public class LabelBox extends Node {
     private String name;

@@ -1,4 +1,4 @@
-package org.emnets.ar.arclient.helpers;
+package org.emnets.ar.arclient.network;
 
 import android.graphics.ImageFormat;
 import android.media.Image;
@@ -12,6 +12,7 @@ import com.google.protobuf.ByteString;
 import org.emnets.ar.arclient.ARConnectionServiceGrpc;
 import org.emnets.ar.arclient.ImageBlock;
 import org.emnets.ar.arclient.Response;
+import org.emnets.ar.arclient.helpers.ImageHelper;
 
 import java.nio.ByteBuffer;
 

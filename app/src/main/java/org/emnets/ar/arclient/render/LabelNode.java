@@ -1,4 +1,4 @@
-package org.emnets.ar.arclient;
+package org.emnets.ar.arclient.render;
 
 import android.content.Context;
 import android.widget.TextView;
@@ -11,10 +11,12 @@ import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ViewRenderable;
 
+import org.emnets.ar.arclient.R;
+
 public class LabelNode extends Node {
     private static float INFO_CARD_Y_POS_COEFF = 0f;
 
-    LabelNode(NodeParent parent, Context context, String text) {
+    public LabelNode(NodeParent parent, Context context, String text) {
         this.setParent(parent);
         this.setEnabled(true);
         this.setLocalPosition(new Vector3(0.0f, INFO_CARD_Y_POS_COEFF, -1f));
@@ -22,7 +24,7 @@ public class LabelNode extends Node {
         setupView(context,text);
     }
 
-    LabelNode(NodeParent parent, Context context, String text, Vector3 position) {
+    public LabelNode(NodeParent parent, Context context, String text, Vector3 position) {
         this.setParent(parent);
         this.setEnabled(true);
         this.setLocalPosition(position);
@@ -30,7 +32,7 @@ public class LabelNode extends Node {
         setupView(context,text);
     }
 
-    LabelNode(NodeParent parent, Context context, Pose pose, String text) {
+    public LabelNode(NodeParent parent, Context context, Pose pose, String text) {
         this.setParent(parent);
         this.setEnabled(true);
         this.setLocalPosition(new Vector3(pose.tx(), pose.ty(), -pose.tz()));

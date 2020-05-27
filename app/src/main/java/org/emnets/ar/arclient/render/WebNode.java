@@ -1,7 +1,6 @@
-package org.emnets.ar.arclient;
+package org.emnets.ar.arclient.render;
 
 import android.content.Context;
-import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -14,11 +13,13 @@ import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ViewRenderable;
 
+import org.emnets.ar.arclient.R;
+
 public class WebNode extends Node {
     private CameraPose cameraPose=null;
 
     // create new node upon parent
-    WebNode(NodeParent parent, Context context, String url) {
+    public WebNode(NodeParent parent, Context context, String url) {
         float INFO_CARD_Y_POS_COEFF = 0.2f;
         this.setParent(parent);
         this.setEnabled(true);
@@ -30,7 +31,7 @@ public class WebNode extends Node {
     }
 
     // create new node in front of image
-    WebNode(NodeParent parent, Context context, Vector3 position, String url) {
+    public WebNode(NodeParent parent, Context context, Vector3 position, String url) {
         this.setParent(parent);
         this.setEnabled(true);
         this.setLocalPosition(new Vector3(position.x, position.y, position.z));
@@ -39,7 +40,7 @@ public class WebNode extends Node {
         setupWebView(context, url);
     }
 
-    WebNode(NodeParent parent, Context context, Vector3 position, Pose anchorPose, String url) {
+    public WebNode(NodeParent parent, Context context, Vector3 position, Pose anchorPose, String url) {
         this.setParent(parent);
         this.setEnabled(true);
         float[] pos = new float[3];
@@ -55,7 +56,7 @@ public class WebNode extends Node {
     }
 
     // create new node in world position
-    WebNode(NodeParent parent, Context context, Pose pose, String url,CameraPose cameraPose) {
+    public WebNode(NodeParent parent, Context context, Pose pose, String url,CameraPose cameraPose) {
         this.setParent(parent);
         this.setEnabled(true);
         this.cameraPose = cameraPose;
@@ -113,7 +114,8 @@ public class WebNode extends Node {
         Vector3 cardPosition = this.getWorldPosition();
         Vector3 direction = Vector3.subtract(cameraPosition, cardPosition);
         direction.y = 0;
-        Quaternion lookRotation = Quaternion.lookRotation(direction, cameraPose.getUpVector());
+//        Quaternion lookRotation = Quaternion.lookRotation(direction, cameraPose.getUpVector());
+        Quaternion lookRotation = Quaternion.lookRotation(direction, Vector3.up());
         this.setWorldRotation(lookRotation);
     }
 }
