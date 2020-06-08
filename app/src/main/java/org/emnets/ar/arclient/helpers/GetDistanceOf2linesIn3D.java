@@ -58,6 +58,14 @@ public class GetDistanceOf2linesIn3D {
         return PonB;
     }
 
+    public Ray getRayA() {
+        return rayA;
+    }
+
+    public Ray getRayB() {
+        return rayB;
+    }
+
     public Vector3 getMidPoint(){
         return Vector3.add(PonA,Vector3.subtract(PonB,PonA).scaled(0.5f));
     }

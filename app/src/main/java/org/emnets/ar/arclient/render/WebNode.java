@@ -1,5 +1,6 @@
 package org.emnets.ar.arclient.render;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -14,6 +15,7 @@ import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ViewRenderable;
 
 import org.emnets.ar.arclient.R;
+import org.emnets.ar.arclient.helpers.GeoHelper;
 
 public class WebNode extends Node {
     private CameraPose cameraPose=null;
@@ -75,6 +77,7 @@ public class WebNode extends Node {
         setupWebView(context, url);
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     private void setupWebView(Context context, String url) {
         ViewRenderable.builder()
                 .setView(context, R.layout.web_view)
@@ -87,6 +90,9 @@ public class WebNode extends Node {
                             WebSettings webSettings = webView.getSettings();
                             webSettings.setUseWideViewPort(true);
                             webSettings.setLoadWithOverviewMode(true);
+                            webSettings.setJavaScriptEnabled(true);
+                            webSettings.setDomStorageEnabled(true);
+                            webSettings.setAllowFileAccessFromFileURLs(true);
                             webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NARROW_COLUMNS);
                             webView.setInitialScale(55);
                             webView.setWebViewClient(new WebViewClient() {
@@ -113,9 +119,6 @@ public class WebNode extends Node {
         Vector3 cameraPosition = cameraPose.getTranslation();
         Vector3 cardPosition = this.getWorldPosition();
         Vector3 direction = Vector3.subtract(cameraPosition, cardPosition);
-        direction.y = 0;
-//        Quaternion lookRotation = Quaternion.lookRotation(direction, cameraPose.getUpVector());
-        Quaternion lookRotation = Quaternion.lookRotation(direction, Vector3.up());
-        this.setWorldRotation(lookRotation);
+        GeoHelper.getLookRotationFromDirection(direction,Vector3.up());
     }
 }

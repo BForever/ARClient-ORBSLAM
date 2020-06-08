@@ -59,11 +59,11 @@ public class GeoHelper {
         Vector3 var3 = new Vector3();
         Vector3 var4 = new Vector3();
         unproject(cameraPose, 0.0F, var3);
-        Log.e(TAG, "origin: " + var3);
+//        Log.e(TAG, "origin: " + var3);
         unproject(cameraPose, 1.0F, var4);
-        Log.e(TAG, "target: " + var4);
+//        Log.e(TAG, "target: " + var4);
         Vector3 var5 = Vector3.subtract(var4, var3).normalized();
-        Log.e(TAG, "direction: " + var5);
+//        Log.e(TAG, "direction: " + var5);
         return new Ray(var3, var5);
     }
 
@@ -86,5 +86,10 @@ public class GeoHelper {
             var4.set(var4.scaled(var8));
             return true;
         }
+    }
+
+    // get LookRotation from object forward direction
+    public static Quaternion getLookRotationFromDirection(Vector3 direction,Vector3 up){
+        return Quaternion.lookRotation(direction, up);
     }
 }

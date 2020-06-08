@@ -47,14 +47,24 @@
         android:id="@+id/start_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="bottom|right"
+        android:gravity="bottom|end"
         android:orientation="vertical">
+        <Button
+            android:id="@+id/reset_button"
+            android:layout_width="136dp"
+            android:layout_height="64dp"
+            android:text="@string/reset_button" />
+        <Button
+            android:id="@+id/show_input_button"
+            android:layout_width="136dp"
+            android:layout_height="64dp"
+            android:text="@string/show_input_layout" />
 
         <Button
             android:id="@+id/start_button"
             android:layout_width="136dp"
             android:layout_height="64dp"
-            android:text="Start" />
+            android:text="@string/start_button" />
 
     </LinearLayout>
 
@@ -67,27 +77,27 @@
         android:visibility="invisible">
 
 
-        <TextView
-            android:id="@+id/textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="请输入编号"
-            android:textSize="30sp"
-            android:visibility="visible" />
-
         <EditText
             android:id="@+id/editText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ems="10"
+            android:hint="@string/input_prompt"
             android:inputType="textPersonName"
             android:visibility="visible" />
+
+        <View
+            android:id="@+id/view"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:alpha="0.5"
+            android:background="#81C784" />
 
         <Button
             android:id="@+id/input_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="确定" />
+            android:text="@string/input_button_first" />
 
 
     </LinearLayout>

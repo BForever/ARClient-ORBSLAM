@@ -14,7 +14,8 @@ import com.google.ar.sceneform.rendering.ViewRenderable;
 import org.emnets.ar.arclient.R;
 
 public class LabelNode extends Node {
-    private static float INFO_CARD_Y_POS_COEFF = 0f;
+    private boolean lookRotate = true;
+    private static final float INFO_CARD_Y_POS_COEFF = 0f;
 
     public LabelNode(NodeParent parent, Context context, String text) {
         this.setParent(parent);
@@ -28,6 +29,16 @@ public class LabelNode extends Node {
         this.setParent(parent);
         this.setEnabled(true);
         this.setLocalPosition(position);
+
+        setupView(context,text);
+    }
+
+    public LabelNode(NodeParent parent, Context context, String text, Vector3 position,Quaternion rotation) {
+        this.setParent(parent);
+        this.setEnabled(true);
+        this.setLocalPosition(position);
+        this.setLocalRotation(rotation);
+        this.lookRotate = false;
 
         setupView(context,text);
     }
@@ -58,10 +69,12 @@ public class LabelNode extends Node {
     @Override
     public void onUpdate(FrameTime frameTime) {
         super.onUpdate(frameTime);
-        Vector3 cameraPosition = getScene().getCamera().getWorldPosition();
-        Vector3 cardPosition = this.getWorldPosition();
-        Vector3 direction = Vector3.subtract(cameraPosition, cardPosition);
-        Quaternion lookRotation = Quaternion.lookRotation(direction, Vector3.up());
-        this.setWorldRotation(lookRotation);
+        if(lookRotate) {
+            Vector3 cameraPosition = getScene().getCamera().getWorldPosition();
+            Vector3 cardPosition = this.getWorldPosition();
+            Vector3 direction = Vector3.subtract(cameraPosition, cardPosition);
+            Quaternion lookRotation = Quaternion.lookRotation(direction, Vector3.up());
+            this.setWorldRotation(lookRotation);
+        }
     }
 }

@@ -6,7 +6,7 @@ option java_outer_classname = "ARConnectionProto";
 
 package ARConnection;
 
-message Matrix {
+message MatrixBlock {
     double r0c0 = 1;
     double r0c1 = 2;
     double r0c2 = 3;
@@ -40,6 +40,7 @@ message Response {
 }
 
 service ARConnectionService {
-    rpc GetViewMatrix (Request) returns (Matrix);
+    rpc GetViewMatrix (Request) returns (MatrixBlock);
     rpc UploadImage(stream ImageBlock) returns (Response);
+    rpc RequestReset(Request) returns (Response);
 }

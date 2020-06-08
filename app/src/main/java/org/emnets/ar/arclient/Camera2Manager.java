@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+import android.util.Range;
 import android.util.Size;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -214,6 +215,22 @@ public class Camera2Manager extends CameraDevice.StateCallback{
         } catch (CameraAccessException e) {
             Log.e(TAG, "Error", e);
             return new Size[0];
+        }
+    }
+
+    public void getCameraFpsBack() {
+        try {
+            cameraCharacteristics = cameraManager.getCameraCharacteristics("0");
+            if (cameraCharacteristics.get(CameraCharacteristics.LENS_FACING)
+                    != CameraCharacteristics.LENS_FACING_BACK) {
+                cameraCharacteristics = cameraManager.getCameraCharacteristics("1");
+            }
+            Range<Integer> range[] = cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+            for(Range<Integer> r : range){
+                Log.v(TAG,r.toString());
+            }
+        } catch (CameraAccessException e) {
+            Log.e(TAG, "Error", e);
         }
     }
 

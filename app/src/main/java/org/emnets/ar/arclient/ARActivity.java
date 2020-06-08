@@ -22,10 +22,12 @@ import com.google.ar.sceneform.Camera;
 import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.Scene;
 import com.google.ar.sceneform.SceneView;
+import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ExternalTexture;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 
+import org.emnets.ar.arclient.helpers.FrameUpdater;
 import org.emnets.ar.arclient.helpers.GeoHelper;
 import org.emnets.ar.arclient.helpers.GetDistanceOf2linesIn3D;
 import org.emnets.ar.arclient.network.GrpcSurfaceUploader;
@@ -57,6 +59,8 @@ public class ARActivity extends AppCompatActivity {
     private SceneView sceneView;
     private LinearLayout startLayout;
     private Button startButton;
+    private Button resetButton;
+    private Button showInputButton;
     private LinearLayout inputLayout;
     private Button inputButton;
     private EditText editText;
@@ -67,6 +71,7 @@ public class ARActivity extends AppCompatActivity {
     CameraPose cameraPose;
     GetDistanceOf2linesIn3D getDistanceOf2linesIn3D = new GetDistanceOf2linesIn3D();
     Node previewPoint;
+    FrameUpdater frameUpdater;
 
     ModelRenderable mVideoRenderable;
     Node mVideoNode;
@@ -99,7 +104,11 @@ public class ARActivity extends AppCompatActivity {
         sceneView = findViewById(R.id.sceneview);
         startLayout = findViewById(R.id.start_layout);
         startButton = findViewById(R.id.start_button);
+        resetButton = findViewById(R.id.reset_button);
+        resetButton.setOnClickListener(this::resetButtonOnClick);
         startButton.setOnClickListener(this::startButtonOnClick);
+        showInputButton = findViewById(R.id.show_input_button);
+        showInputButton.setOnClickListener(this::showInputButtonOnClick);
         inputLayout = findViewById(R.id.input_layout);
         inputButton = findViewById(R.id.input_button);
         inputButton.setOnClickListener(this::inputButtonOnClick);
@@ -107,11 +116,12 @@ public class ARActivity extends AppCompatActivity {
 
         // Shader init
         scene = sceneView.getScene();
-        sceneView.setOnTouchListener(sceneOnTouchListener);
+//        sceneView.setOnTouchListener(sceneOnTouchListener);
         camera = scene.getCamera();
         cameraPose = new CameraPose(camera);
-        camera.setVerticalFovDegrees(50);
+        camera.setVerticalFovDegrees(52);
         camera.setFarClipPlane(60);
+        frameUpdater = new FrameUpdater(cameraPose);
     }
 
     @Override
@@ -128,6 +138,37 @@ public class ARActivity extends AppCompatActivity {
     protected void onDestroy() {
         grpcSurfaceUploader.stop();
         super.onDestroy();
+    }
+
+    private void showInputButtonOnClick(View view){
+        if (inputLayout.getVisibility() == View.INVISIBLE) {
+            inputLayout.setVisibility(View.VISIBLE);
+            showInputButton.setText(R.string.hide_input_layout);
+            inputLayout.requestLayout();
+        }else {
+            inputLayout.setVisibility(View.INVISIBLE);
+            showInputButton.setText(R.string.show_input_layout);
+            inputLayout.requestLayout();
+        }
+    }
+
+    private void resetButtonOnClick(View view){
+        stub.requestReset(request, new StreamObserver<Response>() {
+            @Override
+            public void onNext(Response value) {
+
+            }
+
+            @Override
+            public void onError(Throwable t) {
+
+            }
+
+            @Override
+            public void onCompleted() {
+                Log.v(TAG,"reset requeset sent.");
+            }
+        });
     }
 
     private void startButtonOnClick(View view) {
@@ -162,12 +203,15 @@ public class ARActivity extends AppCompatActivity {
         Surface preview = texture.getSurface();
 
         Camera2Manager camera2Manager = new Camera2Manager(this);
+        camera2Manager.getCameraFpsBack();
         camera2Manager.prepareCamera(preview, grpcSurfaceUploader.getSurface());
         camera2Manager.openCamera();
         grpcSurfaceUploader.start();
+        frameUpdater.start();
 
-        startLayout.setVisibility(View.INVISIBLE);
-        startLayout.requestLayout();
+        startButton.setText(R.string.stop_button);
+//        startLayout.setVisibility(View.INVISIBLE);
+//        startLayout.requestLayout();
     }
 
     private void inputButtonOnClick(View view) {
@@ -178,12 +222,16 @@ public class ARActivity extends AppCompatActivity {
 
         if (getDistanceOf2linesIn3D.twoLineSet()) {
             getDistanceOf2linesIn3D.compute();
-            Vector3 point = getDistanceOf2linesIn3D.getPonA();
+            Vector3 point = getDistanceOf2linesIn3D.getPonB();
             Log.e(TAG, "point create at " + point.toString());
-            previewPoint = new LabelNode(scene, this, "target", point);
+            Quaternion lookRotation = GeoHelper.getLookRotationFromDirection(getDistanceOf2linesIn3D.getRayB().getDirection().negated(),cameraPose.getUpVector());
+            previewPoint = new LabelNode(scene, this, "target", point,lookRotation);
+            inputButton.setText(R.string.input_button_first);
+            showInputButton.setText(R.string.show_input_layout);
             inputLayout.setVisibility(View.INVISIBLE);
             inputLayout.requestLayout();
         } else {
+            inputButton.setText(R.string.input_button_second);
             if (previewPoint != null) {
                 scene.removeChild(previewPoint);
             }
@@ -212,58 +260,44 @@ public class ARActivity extends AppCompatActivity {
 //        new LabelNode(camera,this,"y",new Vector3(0f,0.1f,-1f));
     }
 
-    View.OnTouchListener sceneOnTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View view, MotionEvent motionEvent) {
-//            Log.e(TAG,"onTouch");
-            if (inputLayout.getVisibility() == View.INVISIBLE) {
-                inputLayout.setVisibility(View.VISIBLE);
-                inputLayout.requestLayout();
-            }else {
-                inputLayout.setVisibility(View.INVISIBLE);
-                inputLayout.requestLayout();
-            }
-            return false;
-        }
-    };
+//    View.OnTouchListener sceneOnTouchListener = new View.OnTouchListener() {
+//        @Override
+//        public boolean onTouch(View view, MotionEvent motionEvent) {
+////            Log.e(TAG,"onTouch");
+//            if (inputLayout.getVisibility() == View.INVISIBLE) {
+//                inputLayout.setVisibility(View.VISIBLE);
+//                inputLayout.requestLayout();
+//            }else {
+//                inputLayout.setVisibility(View.INVISIBLE);
+//                inputLayout.requestLayout();
+//            }
+//            return false;
+//        }
+//    };
 
     // View Matrix Transfer
     Runnable receiveMatrix = new Runnable() {
         @Override
         public void run() {
             while (!stopReceive) {
-//                long time = SystemClock.uptimeMillis();
-                StreamObserver<Matrix> streamObserver = new StreamObserver<Matrix>() {
+                StreamObserver<MatrixBlock> streamObserver = new StreamObserver<MatrixBlock>() {
                     @Override
-                    public void onNext(Matrix result) {
+                    public void onNext(MatrixBlock result) {
                         if (result.getUpdate()) {
                             cameraPose.setViewMatrix(result);
-                            camera.setWorldPosition(cameraPose.getTranslation());
-                            camera.setWorldRotation(cameraPose.getRotation());
+//                            camera.setWorldPosition(cameraPose.getTranslation());
+//                            camera.setWorldRotation(cameraPose.getRotation());
 //                            Log.e(TAG,"t: "+cameraPose.getTranslation());
                         } else {
 //                            Log.v("grpc", "pose not updated");
                         }
                     }
-
                     @Override
-                    public void onError(Throwable t) {
-
-                    }
-
+                    public void onError(Throwable t) { }
                     @Override
-                    public void onCompleted() {
-
-                    }
+                    public void onCompleted() { }
                 };
                 stub.getViewMatrix(request, streamObserver);
-                try {
-                    Thread.sleep(5);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-//                Log.e("time","getViewMatrix: "+String.valueOf(SystemClock.uptimeMillis()-time));
-
             }
         }
     };

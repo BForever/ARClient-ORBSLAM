@@ -20,6 +20,7 @@ public class LabelBox extends Node {
     private Context context;
     private static final float INFO_CARD_Y_POS_COEFF = 0.55f;
 
+
     public LabelBox(Context context,String name,float center_x,float center_y,float width,float height){
         this.context=context;
         this.name=name;
