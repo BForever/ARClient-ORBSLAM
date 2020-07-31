@@ -3,6 +3,7 @@ package org.emnets.ar.arclient.network;
 import android.graphics.ImageFormat;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.Surface;
@@ -23,12 +24,14 @@ public class GrpcSurfaceUploader implements ImageReader.OnImageAvailableListener
     final private String TAG = "GrpcSurfaceUploader";
     private ImageReader imageReader;
     private Surface surface;
+    private Handler handler;
     private ARConnectionServiceGrpc.ARConnectionServiceStub stub;
     StreamObserver<Response> responseStreamObserver;
     StreamObserver<ImageBlock> imageBlockStreamObserver;
 
     public GrpcSurfaceUploader(ARConnectionServiceGrpc.ARConnectionServiceStub stub){
-        imageReader = ImageReader.newInstance(640,480, ImageFormat.YUV_420_888,2);
+        handler = new Handler();
+        imageReader = ImageReader.newInstance(640,480, ImageFormat.YUV_420_888,5);
         surface = imageReader.getSurface();
         this.stub = stub;
 
@@ -51,7 +54,7 @@ public class GrpcSurfaceUploader implements ImageReader.OnImageAvailableListener
     }
 
     public void onImageAvailable(ImageReader imageReader){
-//        Log.e("GrpcSurfaceUploader","onImageAvailable");
+        Log.d("GrpcSurfaceUploader","onImageAvailable");
         long start = SystemClock.uptimeMillis();
         Image image = imageReader.acquireNextImage();
 //        byte[] imageBytes = ImageHelper.YUV_420_888toNV21(image);

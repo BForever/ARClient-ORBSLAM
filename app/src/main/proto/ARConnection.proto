@@ -39,8 +39,28 @@ message Response {
     string status = 1;
 }
 
+message ObjPosition {
+    double x = 1;
+    double y = 2;
+    double z = 3;
+}
+message ObjectPosition {
+    double x = 1;
+    double y = 2;
+    double z = 3;
+}
+message ObjectInfo {
+    string name = 1;
+    ObjectPosition position = 2;
+}
+
+message ObjectInfoList {
+    repeated ObjectInfo objects = 1;
+}
+
 service ARConnectionService {
     rpc GetViewMatrix (Request) returns (MatrixBlock);
     rpc UploadImage(stream ImageBlock) returns (Response);
     rpc RequestReset(Request) returns (Response);
+    rpc GetObjectList (Request) returns (ObjectInfoList);
 }

@@ -7,12 +7,17 @@ import android.util.Log;
 import com.google.gson.Gson;
 
 import org.emnets.ar.arclient.ARActivity;
+import org.emnets.ar.arclient.ObjectInfo;
+import org.emnets.ar.arclient.ObjectInfoList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
+
+import io.grpc.stub.StreamObserver;
 
 public class TargetServer extends AsyncTask<TargetInfo, Void, TargetInfo[]> {
     private final String TAG = "PoseServer";
@@ -21,11 +26,39 @@ public class TargetServer extends AsyncTask<TargetInfo, Void, TargetInfo[]> {
     private final String SERVER_ADDRESS;
     private ARActivity activity;
 
+    private class ObjectStreamObserver implements StreamObserver<ObjectInfoList> {
+        public TargetInfo[] objectInfos=null;
+        @Override
+        public void onNext(ObjectInfoList value) {
+            List<ObjectInfo> list = value.getObjectsList();
+            if(list.size()>0){
+                objectInfos = new TargetInfo[list.size()];
+                for(int i=0;i<list.size();i++){
+                    objectInfos[i].name = list.get(i).getName();
+                    objectInfos[i].pose[0] = (float)list.get(i).getPosition().getX();
+                    objectInfos[i].pose[0] = (float)list.get(i).getPosition().getY();
+                    objectInfos[i].pose[0] = (float)list.get(i).getPosition().getZ();
+                }
+            }
+
+        }
+
+        @Override
+        public void onError(Throwable t) {
+
+        }
+
+        @Override
+        public void onCompleted() {
+
+        }
+    }
+
 
     public TargetServer(ARActivity activity, boolean upload) {
         this.activity = activity;
         this.upload = upload;
-        SERVER_ADDRESS = activity.UI_SERVER_ADDRESS + ":5001/pose";
+        SERVER_ADDRESS = activity.UI_SERVER_ADDRESS + ":5000/pose";
     }
 
     @Override
@@ -83,7 +116,37 @@ public class TargetServer extends AsyncTask<TargetInfo, Void, TargetInfo[]> {
 
                 Log.e(TAG, "Error posting pose: " + targetInfo.response);
             }
-            return targetInfos;
+
+            ObjectStreamObserver objectStreamObserver = new ObjectStreamObserver();
+            ObjectInfoList objectInfoList = activity.bstub.getObjectList(activity.request);
+            TargetInfo[] objectInfos;
+            List<ObjectInfo> list = objectInfoList.getObjectsList();
+            if(list.size()>0){
+                objectInfos = new TargetInfo[list.size()];
+                for(int i=0;i<list.size();i++){
+                    TargetInfo info = new TargetInfo();
+                    info.name = list.get(i).getName();
+                    info.pose[0] = (float)list.get(i).getPosition().getX();
+                    info.pose[1] = -(float)list.get(i).getPosition().getY();
+                    info.pose[2] = -(float)list.get(i).getPosition().getZ();
+                    objectInfos[i]=info;
+                }
+            }else {
+                objectInfos = new TargetInfo[0];
+            }
+
+            TargetInfo[] results = new TargetInfo[targetInfos.length+objectInfos.length];
+            int i=0;
+            for(TargetInfo info:targetInfos){
+                results[i] = info;
+                i++;
+            }
+            for(TargetInfo info:objectInfos){
+                results[i] = info;
+                i++;
+            }
+
+            return results;
         } catch (IOException e) {
             Log.e(TAG, "Error in POST", e);
             return null;

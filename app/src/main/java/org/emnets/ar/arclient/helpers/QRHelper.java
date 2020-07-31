@@ -18,7 +18,7 @@ import java.nio.charset.Charset;
 import java.util.Hashtable;
 
 public class QRHelper {
-    public static String getReult(Bitmap mBitmap) {
+    public static String getResult(Bitmap mBitmap) {
         String string = null;
         if (mBitmap != null) {
             string = scanBitmap(mBitmap);

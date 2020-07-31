@@ -25,5 +25,8 @@
   <string name="input_prompt">target name</string>
   <string name="input_button_first">First view</string>
   <string name="input_button_second">Second view</string>
-
+  <string name="seminar_name">即将举行的会议：xxxxx实验室组会</string>
+  <string name="door_button">您是参会人员，点击开门</string>
+  <string name="seminar_time">会议时间：9:30 – 11:00</string>
+  <string name="participants">参会人员：XXX,XXX,XXX,XXX</string>
 </resources>

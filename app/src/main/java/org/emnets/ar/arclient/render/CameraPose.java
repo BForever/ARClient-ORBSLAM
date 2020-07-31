@@ -10,6 +10,7 @@ import com.google.ar.sceneform.math.Vector3;
 import org.emnets.ar.arclient.Matrix;
 import org.emnets.ar.arclient.MatrixBlock;
 import org.emnets.ar.arclient.helpers.CircleQueue;
+import org.emnets.ar.arclient.helpers.FrameUpdater;
 import org.emnets.ar.arclient.helpers.GeoHelper;
 import org.emnets.ar.arclient.helpers.ToStringHelper;
 
@@ -21,7 +22,7 @@ public class CameraPose {
     private com.google.ar.sceneform.math.Matrix worldModeMatrix = new com.google.ar.sceneform.math.Matrix();
     private Vector3 translation = new Vector3();
     private Quaternion rotation = new Quaternion();
-    private final int queueLength=2;
+    private final int queueLength= FrameUpdater.delayedFrames-1;
     private CircleQueue translations = new CircleQueue(queueLength);
     private CircleQueue rotations = new CircleQueue(queueLength);
 
@@ -54,8 +55,6 @@ public class CameraPose {
         translations.push(t);
         worldModeMatrix.extractQuaternion(r);
         rotations.push(r);
-
-
     }
 
     public Vector3 getTranslation() {
@@ -70,6 +69,14 @@ public class CameraPose {
         if(translations.size>=2){
             Object[] list = translations.getSortedQueue();
             return (Vector3)list[queueLength-2];
+        }else{
+            return getTranslation();
+        }
+    }
+    public Vector3 getHistoryTranslation(){
+        if(translations.size>=2){
+            Object[] list = translations.getSortedQueue();
+            return (Vector3)list[0];
         }else{
             return getTranslation();
         }
@@ -96,6 +103,14 @@ public class CameraPose {
         if(rotations.size>=2){
             Object[] list = rotations.getSortedQueue();
             return (Quaternion)list[queueLength-2];
+        }else{
+            return getRotation();
+        }
+    }
+    public Quaternion getHistoryRotation(){
+        if(rotations.size>=2){
+            Object[] list = rotations.getSortedQueue();
+            return (Quaternion)list[0];
         }else{
             return getRotation();
         }
